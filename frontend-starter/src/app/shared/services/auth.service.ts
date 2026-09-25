@@ -10,7 +10,26 @@ export class AuthService {
   private readonly http = inject(HttpClient);
 
   readonly currentUser = signal<User | null>(null);
-  readonly token = signal<string | null>(localStorage.getItem('gpc_token'));
+  readonly token = signal<string | null>(this.savedToken());
+
+  /** Returns the stored token only if it has not expired yet. */
+  private savedToken(): string | null {
+    const token = localStorage.getItem('gpc_token');
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem('gpc_token');
+        return null;
+      }
+    } catch {
+      localStorage.removeItem('gpc_token');
+      return null;
+    }
+
+    return token;
+  }
 
   login(email: string, password: string) {
     return this.http
