@@ -9,8 +9,18 @@
     <article class="card">
       <h2>Importer</h2>
       <label>Titre<input [formControl]="title" /></label>
-      <label>Fichier audio<input type="file" accept="audio/*" (change)="choose($event)" /></label>
-      <button type="button" (click)="upload()" [disabled]="!file">Envoyer</button>
+      <label>Fichier audio<input #fileInput type="file" accept="audio/*" (change)="choose($event)" /></label>
+      
+      @if (uploadError()) {
+        <p class="error">{{ uploadError() }}</p>
+      }
+      @if (uploadSuccess()) {
+        <p class="success">{{ uploadSuccess() }}</p>
+      }
+
+      <button type="button" (click)="upload()" [disabled]="!file || uploading()">
+        @if (uploading()) { Envoi en cours… } @else { Envoyer }
+      </button>
     </article>
 
     <article class="card">
@@ -24,22 +34,35 @@
       @if (error()) {
         <p class="error">{{ error() }}</p>
       }
-      @for (track of tracks(); track track.id) {
-        <div class="track">
-          <div>
-            <b>{{ track.title }}</b>
-            <small>{{ track.originalName }} · {{ track.size }} Ko</small>
+      <div class="track-cards">
+        @for (track of tracks(); track track.id) {
+          <div class="track-card" [class.playing]="playingTrack()?.id === track.id">
+            <div class="track-info">
+              <h3>{{ track.title }}</h3>
+              <p class="meta">
+                <span>📄 {{ track.originalName }}</span>
+                <span>📦 {{ (track.size / 1024 / 1024).toFixed(2) }} Mo</span>
+                <span>📅 Ajouté le {{ track.createdAt.slice(0, 10) }}</span>
+              </p>
+            </div>
+            <button type="button" class="btn-play" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">
+              @if (playingTrack()?.id === track.id) { 🔊 En cours } @else { ▶ Lire }
+            </button>
           </div>
-          <button type="button" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">▶</button>
-        </div>
-      } @empty {
-        <p>Aucune piste.</p>
-      }
+        } @empty {
+          <p>Aucune piste dans votre bibliothèque.</p>
+        }
+      </div>
       <div class="pager">
         <button type="button" (click)="go(page() - 1)" [disabled]="page() === 1">Préc.</button>
         <span>Page {{ page() }} / {{ pages() }}</span>
         <button type="button" (click)="go(page() + 1)" [disabled]="page() === pages()">Suiv.</button>
       </div>
+      
+      @if (audioError()) {
+        <p class="error">{{ audioError() }}</p>
+      }
+      
       @if (audioUrl()) {
         <audio [src]="audioUrl()" controls autoplay></audio>
       }
