@@ -156,3 +156,103 @@ On retrouve le code de statut 200 et la réponse du serveur avec le token JWT.
 
 ![Capture 1](docs/images/screen_login_reseau_1.png)
 ![Capture 2](docs/images/screen_login_reseau_2.png)
+
+<br><br>
+
+# Rapport d'usage de l'IA - TP2
+
+---
+
+## Interaction 1 - Découpage et Pagination (Mission 2)
+
+**Objectif** : Comprendre ce qu'il manquait pour implémenter la pagination
+
+**Prompt** :
+> Liste-moi les tâches à faire pour la mission 2 sur la base du sujet
+
+**Résumé** : L'IA a analysé le code existant et remarqué que la pagination (`TrackService`, les paramètres `page`/`limit`, et la boucle `@for` dans le HTML) était déjà gérée par le code de base fourni.
+L'IA m'a donc uniquement aidé à ajouter un Signal `error` pour gérer et afficher les erreurs réseau proprement en cas d'échec du chargement.
+**Fichiers modifiés** : `tracks-page.ts`, `tracks-page.html`.
+
+---
+
+## Interaction 2 - Validation Frontend (Mission 3)
+
+**Objectif** : Vérifier le poids et le format du fichier avant de l'envoyer au serveur.
+
+**Prompt** :
+> Aide-moi à faire la validation frontend pour l'upload (taille < 25Mo et type audio uniquement).
+
+**Résumé** : L'IA a conseillé de faire ces vérifications directement dans la méthode `choose()` (déclenchée à la sélection du fichier) pour checker immédiatement et retourner un message si besoin, plutôt que d'attendre l'envoie'. Ajout du Signal `uploadError` pour afficher l'erreur en rouge au-dessus du bouton.
+**Fichiers modifiés** : `tracks-page.ts`, `tracks-page.html`.
+
+---
+
+## Interaction 3 - Mémoire et ObjectURL (Mission 3)
+
+**Objectif** : Comprendre pourquoi le sujet demande de révoquer l'URL.
+
+**Prompt** :
+> Le sujet me demande de "révoquer l'ObjectURL finale à la destruction du composant". Pourquoi on fait ça et comment on l'implémente ?
+
+**Résumé** : L'IA a expliqué le concept de fuite de mémoire avec `URL.createObjectURL` qui réserve de la RAM dans le navigateur pour stocker le fichier audio. Si on change de page sans détruire = la RAM n'est pas libérée.
+Elle a également implémenté l'interface `OnDestroy` dans Angular proprement car je ne voyais pas comment le faire.
+**Fichiers modifiés** : `tracks-page.ts`.
+
+---
+
+## Interaction 4 - Refonte Graphique et Affordance (Mission 3)
+
+**Objectif** : Rendre la liste de pistes plus esthétique (Cards). Le front pur ne m'interesse pas, je le délègue à l'IA.
+
+**Prompt** :
+> Transforme la liste des pistes en de vraies Cards responsives, conformément à ce qui est demandé dans @SUJET_ETUDIANT_TP2.md . Rajoute des boutons de lecture au hover.
+
+**Résumé** : L'IA l'a implémenté avec du CSS Grid.
+**Fichiers modifiés** : `tracks-page.css`, `tracks-page.html`.
+
+---
+
+## Réponses aux questions théoriques (Livrables TP2)
+
+**1. Le backend envoie-t-il le fichier entier en mémoire ou peut-il l’envoyer progressivement depuis le disque ?**
+Il l'envoie progressivement depuis le disque car, dans le code backend (`app.js`), la route audio utilise `res.sendFile(audioPath)`, qui est une méthode d'Express qui gère en interne le streaming du fichier par morceaux sans le charger entièrement en RAM.
+
+**2. Avec `HttpClient` et `responseType: "blob"`, à quel moment le composant reçoit-il généralement le fichier ?**
+Angular attend que le fichier complet soit téléchargé en RAM côté client avant de déclencher le `next()` du `.subscribe()`. Le navigateur commence ensuite à le lire depuis la RAM (via l'ObjectURL).
+
+**3. Si la bibliothèque contient 100 morceaux, les 100 fichiers audio sont-ils chargés en mémoire dès l'affichage de la liste ? Justifier la réponse à partir du code.**
+Non, car :
+- la pagination limite la liste envoyée au client (donc juste les métadonnées de 5 morceaux)
+- le fichier audio lui-même n'est téléchargé que lorsqu'on clique sur le bouton "Lire" du morceau.
+
+**4. Quelle différence y aurait-il avec 100 éléments `<audio>` utilisant directement une URL HTTP ?**
+- le navigateur commencerait à pré-charger automatiquement les 100 fichiers audio en parallèle (du moins les métadonnées), ce qui générerait 100 requêtes HTTP d’un coup et consommerait beaucoup de bande passante et de RAM. Alors, qu'avec notre approche, on ne télécharge qu’un seul fichier, uniquement quand l’utilisateur clique sur "Lire".
+- les requêtes faites nativement par une balise `<audio>` ne passent pas par le `HttpClient` d’Angular, donc l'intercepteur n’ajoute pas le token JWT et le backend refuserait toutes les requêtes avec une erreur 401.
+
+**5. Pourquoi l'URL créée par `URL.createObjectURL` doit-elle être révoquée ?**
+Cette méthode crée un lien temporaire vers des données stockées dans la RAM du navigateur.
+Si on ne fait pas `revokeObjectURL()`, le navigateur conserve ces données en mémoire jusqu'à ce qu'on ferme l'onglet, ce qui finit par créer une fuite de mémoire (Memory Leak) si on lance plusieurs morceaux.
+
+---
+
+## Preuves et Captures (Livrables TP2)
+
+### Capture Network de la pagination
+
+Requête `GET /api/tracks?page=2&limit=5` visible dans l'onglet Network. On observe que le paramètre `page` change à chaque clic sur "Suiv." ou "Préc.".
+
+![Capture pagination](docs/images/screen_pagination_reseau.png)
+
+### Capture Network de l'upload
+
+Requête `POST /api/tracks` en `multipart/form-data`. 
+
+![Capture upload](docs/images/screen_upload_reseau.png)
+
+### Lecture audio authentifiée
+
+Pour prouver que la lecture passe bien par l'intercepteur JWT :
+dans l'onglet Network, au clic sur "Lire", la requête `GET /api/tracks/:id/audio` apparaît, et dans ses Request Headers, on retrouve `Authorization: Bearer <token>`, ce qui confirme que l'intercepteur Angular a bien injecté le JWT. Sinon, sans ce header le backend refuserait la requête (401).
+
+![Capture lecture authentifiée](docs/images/screen_lecture_authentifiee.png)
