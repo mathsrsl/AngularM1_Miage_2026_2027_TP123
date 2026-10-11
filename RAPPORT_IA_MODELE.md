@@ -311,7 +311,7 @@ La sécurité réelle est obligatoirement garantie par le backend :
 
 ---
 
-## Interaction 3 — Implémentation de la progression d'upload (Mission 6)
+## Interaction 3 - Implémentation de la progression d'upload (Mission 6)
 
 **Objectif** : Faire évoluer l'upload pour afficher le pourcentage et la barre de progression.
 
@@ -328,7 +328,7 @@ La sécurité réelle est obligatoirement garantie par le backend :
 
 ---
 
-## Interaction 4 — Réinitialisation complète du formulaire après upload (Mission 6)
+## Interaction 4 - Réinitialisation complète du formulaire après upload (Mission 6)
 
 **Objectif** : Vider le champ de fichier natif HTML une fois l'upload terminé.
 
@@ -344,7 +344,7 @@ La sécurité réelle est obligatoirement garantie par le backend :
 
 ---
 
-## Interaction 5 — Compréhension du calcul de progression (Mission 6)
+## Interaction 5 - Compréhension du calcul de progression (Mission 6)
 
 **Objectif** : Comprendre le fonctionnement des événements de progression et préparer la question du sujet.
 
@@ -366,3 +366,56 @@ La sécurité réelle est obligatoirement garantie par le backend :
 Une requête HTTP fonctionne sur le modèle requête/réponse unique. Avec la progression d'upload (`reportProgress: true` et `observe: 'events'`), le comportement change :
 1. L'Observable envoie plusieurs notifications pendant le transfert (`HttpEventType.Sent`, puis une suite d'événements `UploadProgress` à chaque paquet réseau, et enfin `Response`).
 2. Le flux ne contient pas directement la ressource, mais des objets `HttpEvent`. Le code du composant doit donc séparer les étapes de progression de la réponse finale.
+
+---
+
+## Interaction 6 - Découverte des tests Angular et cadrage (Mission 7)
+
+**Objectif** : Comprendre le fonctionnement des TU Angular et définir la liste des tests à écrire selon le sujet.
+
+**Prompt** :
+> Pour la mission 7, je dois faire des tests sur la partie frontend (angular). Je ne connais pas, donc dans un premier temps explique moi comment les tests se font avec Angular. Pour ne pas impacter le backend il faudra un/des mocks ? Comment (explique, ne code pas) ? Et enfin, d'après les consignes, analyse et propose les tests qui peuvent être mis en place (liste).
+
+**Résumé de la réponse** :
+L'IA a expliqué les bases du testing Angular :
+- L'utilisation de `TestBed` qui initialise un env de test et instancie les services avec isolation.
+- Le principe du mock HTTP avec `provideHttpClientTesting()` et `HttpTestingController` : les requêtes réseau sont interceptées en mémoire et le test fournit lui-même la réponse attendue -> le backend jamais utilisé.
+- L'IA a proposé une première liste de tests issus du sujet.
+
+**Fichiers modifiés** : aucun.
+
+---
+
+## Interaction 7 - Complément de cas limite et implémentation (Mission 7)
+
+**Objectif** : Corriger la liste proposée en ajoutant le cas sans token, puis implémenter les suites de tests.
+
+**Prompt** :
+> Dans ta proposition, tu as prévu de tester l'ajout du Bearer token, mais tu as oublié le cas où l'utilisateur n'est pas connecté. Il faut aussi vérifier qu'aucun header Auth n'est ajouté si le token est null. Ajoute ce test et implémente l'ensemble des tests.
+
+**Ce que l'IA a fait** :
+- A créé `auth.service.spec.ts` pour tester l'appel `POST /api/auth/login` avec le bon corps et la mise à jour des Signals.
+- A créé `track.service.spec.ts` pour tester les paramètres `page` et `limit` sur `list()` ainsi que l'appel `DELETE` sur `delete()`.
+- A créé `auth.interceptor.spec.ts` en incluant bien les **deux cas** : avec token (en-tête présent) et sans token (aucun en-tête ajouté).
+- A configuré Vitest dans `src/test-setup.ts` et le script `npm test`.
+
+**Fichiers créés / modifiés** :
+- `src/app/shared/services/auth.service.spec.ts`
+- `src/app/shared/services/track.service.spec.ts`
+- `src/app/shared/interceptors/auth.interceptor.spec.ts`
+- `src/test-setup.ts`
+- `frontend-starter/package.json`
+
+---
+
+## Rapport des tests (Livrables TP3 - Mission 7)
+
+Exécution via `npm test` : **3 suites de tests, 5 tests passés avec succès**.
+
+| Test | Fichier | Résultat attendu | Résultat observé |
+|---|---|---|---|
+| `login() utilise POST /api/auth/login avec le bon corps` | `auth.service.spec.ts` | Requête `POST /api/auth/login` avec body `{ email, password }`, mise à jour du Signal `token` | ✅ Passé (8ms) |
+| `list() transmet page et limit` | `track.service.spec.ts` | Requête `GET /api/tracks?page=2&limit=10`, paramètres d'URL conformes | ✅ Passé (9ms) |
+| `delete() appelle DELETE /api/tracks/:id` | `track.service.spec.ts` | Requête `DELETE /api/tracks/track-123`, statut 204 simulé | ✅ Passé (1ms) |
+| `ajoute Authorization lorsqu’un token existe` | `auth.interceptor.spec.ts` | En-tête `Authorization: Bearer <token>` injecté sur la requête sortante | ✅ Passé (8ms) |
+| `ne met pas Authorization si aucun token n’existe` | `auth.interceptor.spec.ts` | Aucun en-tête `Authorization` ajouté si `token === null` | ✅ Passé (1ms) |
