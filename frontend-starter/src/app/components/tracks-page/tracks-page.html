@@ -9,8 +9,15 @@
     <article class="card">
       <h2>Importer</h2>
       <label>Titre<input [formControl]="title" /></label>
-      <label>Fichier audio<input #fileInput type="file" accept="audio/*" (change)="choose($event)" /></label>
+      <label>Fichier audio<input #fileInput type="file" accept="audio/*" (change)="choose($event)" [disabled]="uploading()" /></label>
       
+      @if (uploadProgress() !== null) {
+        <div class="progress-container">
+          <progress [value]="uploadProgress()" max="100"></progress>
+          <span>{{ uploadProgress() }}%</span>
+        </div>
+      }
+
       @if (uploadError()) {
         <p class="error">{{ uploadError() }}</p>
       }
@@ -19,7 +26,7 @@
       }
 
       <button type="button" (click)="upload()" [disabled]="!file || uploading()">
-        @if (uploading()) { Envoi en cours… } @else { Envoyer }
+        @if (uploading()) { Envoi en cours ({{ uploadProgress() }}%)… } @else { Envoyer }
       </button>
     </article>
 
@@ -45,9 +52,16 @@
                 <span>📅 Ajouté le {{ track.createdAt.slice(0, 10) }}</span>
               </p>
             </div>
-            <button type="button" class="btn-play" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">
-              @if (playingTrack()?.id === track.id) { 🔊 En cours } @else { ▶ Lire }
-            </button>
+            <div class="track-actions">
+              <button type="button" class="btn-play" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">
+                @if (playingTrack()?.id === track.id) { 🔊 En cours } @else { ▶ Lire }
+              </button>
+              <button type="button" class="btn-delete" (click)="remove(track)"
+                [disabled]="deletingId() === track.id"
+                [attr.aria-label]="'Supprimer ' + track.title">
+                @if (deletingId() === track.id) { ⏳ } @else { 🗑 }
+              </button>
+            </div>
           </div>
         } @empty {
           <p>Aucune piste dans votre bibliothèque.</p>

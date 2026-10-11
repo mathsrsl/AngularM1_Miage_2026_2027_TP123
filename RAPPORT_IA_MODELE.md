@@ -256,3 +256,113 @@ Pour prouver que la lecture passe bien par l'intercepteur JWT :
 dans l'onglet Network, au clic sur "Lire", la requête `GET /api/tracks/:id/audio` apparaît, et dans ses Request Headers, on retrouve `Authorization: Bearer <token>`, ce qui confirme que l'intercepteur Angular a bien injecté le JWT. Sinon, sans ce header le backend refuserait la requête (401).
 
 ![Capture lecture authentifiée](docs/images/screen_lecture_authentifiee.png)
+
+<br><br>
+
+# Rapport d'usage de l'IA - TP3
+
+---
+
+## Interaction 1 - Conception et UX de la suppression (Mission 5)
+
+**Objectif** : Savoir comment structurer la suppression d'une piste côté Angular : confirmation, gestion de l'état asynchrone pour bloquer les doubles clics, et notification discrète via `MatSnackBar`.
+
+**Prompt** :
+> Pour la mission 5, je dois ajouter la suppression d'une piste. Comment gérer proprement l'état dans le composant pour éviter les doubles clics et comment utiliser le MatSnackBar d'angular pour notifier le user sans bloquer l'écran ?
+
+**Résumé de la réponse** :
+L'IA a recommandé d'utiliser un Signal `deletingId` pour stocker l'identifiant de la piste en cours de suppression (ou `null` quand aucune suppression n'est en cours). Cela permet :
+- De désactiver le bouton de la carte ciblée + afficher un état d'attente.
+- D'empêcher les doubles clic avant réponse du serveur.
+- D'injecter la snackBar pour ouvrir une notification temporaire et qui disparaît automatiquement sans bloquer l'utilisateur.
+- De gérer le cas d'erreur 404 (si déjà supprimée dans un autre onglet) avec un message et un reload.
+
+**Fichiers modifiés** :
+- `tracks-page.ts` (signal `deletingId`, injection `MatSnackBar`, méthode `remove()`)
+- `tracks-page.html` (bouton suppression dans `.track-actions`)
+- `tracks-page.css` (styles du bouton et affichage au hover)
+
+---
+
+## Interaction 2 - Sécurité Frontend vs Backend (Mission 5)
+
+**Objectif** : Comprendre la séparation de sécurité entre le client Angular et l'API Express.
+
+**Prompt** :
+> Dans le sujet de la mission 5, il est demandé d'expliquer pourquoi le guard Angular et l'interface ne suffisent pas à sécuriser la suppression. Je sais que le guard protège l'accès à la page, mais pourquoi c'est pas une vraie sécurité pour la suppression ?
+
+**Résumé de la réponse** :
+L'IA a expliqué la différence fondamentale entre ergonomie client (UX) et sécurité serveur :
+- **Côté client** : le guard Angular (`authGuard`) et les conditions d'affichage ne font que guider l'utilisateur. Tout est dans le navigateur, donc un user malveillant peut ouvrir ses DevTools ou envoyer directement un `DELETE /api/tracks/:id`.
+- **Côté serveur** : le middleware `auth` valide la signature du token JWT et extrait l'identité du client (`req.auth.sub`). Même si un user tente d'envoyer l'ID d'une piste appartenant à quelqu'un d'autre, le backend refuse le delete et retourne une 404 car l'`ownerId` ne correspond pas.
+
+**Fichiers modifiés** : aucun.
+
+---
+
+## Réponses aux questions théoriques (Mission 5)
+
+**Pourquoi le guard Angular et l’interface ne suffisent pas à sécuriser la suppression ?**
+Le guard Angular et l'interface s'exécutent entièrement côté client (dans le navigateur de l'utilisateur). Ils n'apportent qu'un confort de navigation et peuvent être facilement contournés (modification de mémoire dans les DevTools, ou émission directe d'une requête HTTP `DELETE /api/tracks/:id` via la console, cURL ou Postman). 
+
+La sécurité réelle est obligatoirement garantie par le backend :
+1. Le middleware `auth` vérifie la validité et la signature du jeton JWT.
+2. Le modèle Mongoose filtre la suppression avec le propriétaire de la piste (`Track.findOneAndDelete({ _id: id, ownerId: req.auth.sub })`), rendant impossible la suppression de la piste d'un autre utilisateur même en connaissant son ID.
+
+---
+
+## Interaction 3 — Implémentation de la progression d'upload (Mission 6)
+
+**Objectif** : Faire évoluer l'upload pour afficher le pourcentage et la barre de progression.
+
+**Prompt** :
+> Fais la mission 6 : fais évoluer l'upload de piste pour afficher la progression en pourcentage avec une barre, désactiver les contrôles pendant l'envoi et gérer les états (sans upload, en cours, succès, échec).
+
+**Ce que l'IA a fait** :
+- A modifié `TrackService.upload()` pour ajouter `{ reportProgress: true, observe: 'events' }`.
+- A ajouté le Signal `uploadProgress` dans le composant pour stocker le pourcentage.
+- A utilisé les événements `HttpEventType.UploadProgress` et `HttpEventType.Response` dans le `subscribe()` -> mise à jour du Signal et réactivation des champs.
+- A ajouté la barre HTML `<progress>` et le texte du pourcentage dans la partie d'importation.
+
+**Fichiers modifiés** : `track.service.ts`, `tracks-page.ts`, `tracks-page.html`, `tracks-page.css`.
+
+---
+
+## Interaction 4 — Réinitialisation complète du formulaire après upload (Mission 6)
+
+**Objectif** : Vider le champ de fichier natif HTML une fois l'upload terminé.
+
+**Prompt** :
+> Quand l'upload réussit, le champ du titre se vide bien, mais l'input du fichier audio garde toujours le nom de l'ancien fichier affiché à l'écran. Comment corriger ca ?
+
+**Ce que l'IA a fait** :
+- A expliqué que mettre la variable `this.file = undefined` ne réinitialise pas le DOM de l'élément `<input type="file">` natif du navigateur.
+- A ajouté une référence locale `#fileInput` dans le HTML et injecté `@ViewChild('fileInput')` dans le TypeScript.
+- Dans le bloc de succès de l'upload, a ajouté `this.fileInput.nativeElement.value = ''` pour effacer le nom du fichier sélectionné et remettre le form à zéro.
+
+**Fichiers modifiés** : `tracks-page.html`, `tracks-page.ts`.
+
+---
+
+## Interaction 5 — Compréhension du calcul de progression (Mission 6)
+
+**Objectif** : Comprendre le fonctionnement des événements de progression et préparer la question du sujet.
+
+**Prompt** :
+> Comment le navigateur et Angular calculent concrètement le pourcentage de progression ? Et pourquoi on ne peut pas traiter cette requête comme un appel HTTP classique (question de la mission 6 dans @SUJET_ETUDIANT_TP3.md) ?
+
+**Résumé de la réponse** :
+- Le navigateur découpe le fichier multipart en paquets réseau. À chaque envoi de paquet, l'API réseau émet un événement contenant les octets déjà transmis (`loaded`) et le poids total (`total`).
+- Contrairement à un appel d'API classique qui n'émet qu'une seule valeur finale (JSON de réponse) puis se termine, ici le `HttpClient` émet un flux continu de plusieurs objets `HttpEvent` différents. Il faut aussi filtrer par `event.type` pour séparer les événements de progression de la réponse finale.
+
+**Fichiers modifiés** : aucun.
+
+---
+
+## Réponses aux questions théoriques (Mission 6)
+
+**Expliquer pourquoi un upload avec progression ne se traite pas exactement comme une requête HTTP qui émet uniquement une réponse finale.**
+
+Une requête HTTP fonctionne sur le modèle requête/réponse unique. Avec la progression d'upload (`reportProgress: true` et `observe: 'events'`), le comportement change :
+1. L'Observable envoie plusieurs notifications pendant le transfert (`HttpEventType.Sent`, puis une suite d'événements `UploadProgress` à chaque paquet réseau, et enfin `Response`).
+2. Le flux ne contient pas directement la ressource, mais des objets `HttpEvent`. Le code du composant doit donc séparer les étapes de progression de la réponse finale.
