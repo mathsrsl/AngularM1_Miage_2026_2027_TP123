@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, signal, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { HttpEventType } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -13,6 +13,7 @@ import { TrackService } from '../../shared/services/track.service';
 export class TracksPageComponent implements OnDestroy {
   private readonly service = inject(TrackService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
@@ -97,17 +98,25 @@ export class TracksPageComponent implements OnDestroy {
   upload(): void {
     if (!this.file) return;
 
+    const currentFile = this.file;
+    const totalSize = currentFile.size;
+
     this.uploading.set(true);
     this.uploadProgress.set(0);
     this.uploadError.set('');
     this.uploadSuccess.set('');
     this.title.disable();
 
-    this.service.upload(this.file, this.title.value || this.file.name).subscribe({
+    this.service.upload(currentFile, this.title.value || currentFile.name).subscribe({
       next: (event) => {
         if (event.type === HttpEventType.UploadProgress) {
-          const progress = event.total ? Math.round((100 * event.loaded) / event.total) : 0;
+          const total = (event.total && event.total > 0) ? event.total : totalSize;
+          const progress = total > 0 ? Math.min(100, Math.round((100 * event.loaded) / total)) : 0;
           this.uploadProgress.set(progress);
+          this.cdr.markForCheck();
+        } else if (event.type === HttpEventType.ResponseHeader) {
+          this.uploadProgress.set(100);
+          this.cdr.markForCheck();
         } else if (event.type === HttpEventType.Response) {
           const track = event.body;
           console.debug('[TracksPage] Piste envoyée', track?.id);
@@ -120,6 +129,7 @@ export class TracksPageComponent implements OnDestroy {
           this.uploadSuccess.set('Piste importée avec succès.');
           this.uploading.set(false);
           this.uploadProgress.set(null);
+          this.cdr.markForCheck();
           this.page.set(1);
           this.load();
         }
@@ -130,6 +140,7 @@ export class TracksPageComponent implements OnDestroy {
         this.uploading.set(false);
         this.uploadProgress.set(null);
         this.title.enable();
+        this.cdr.markForCheck();
       }
     });
   }

@@ -410,12 +410,31 @@ L'IA a expliqué les bases du testing Angular :
 
 ## Rapport des tests (Livrables TP3 - Mission 7)
 
-Exécution via `npm test` : **3 suites de tests, 5 tests passés avec succès**.
+Exécution via `npm test` (3 fichiers de tests, 5 tests passés avec succès) :
 
 | Test | Fichier | Résultat attendu | Résultat observé |
 |---|---|---|---|
-| `login() utilise POST /api/auth/login avec le bon corps` | `auth.service.spec.ts` | Requête `POST /api/auth/login` avec body `{ email, password }`, mise à jour du Signal `token` | ✅ Passé (8ms) |
-| `list() transmet page et limit` | `track.service.spec.ts` | Requête `GET /api/tracks?page=2&limit=10`, paramètres d'URL conformes | ✅ Passé (9ms) |
-| `delete() appelle DELETE /api/tracks/:id` | `track.service.spec.ts` | Requête `DELETE /api/tracks/track-123`, statut 204 simulé | ✅ Passé (1ms) |
-| `ajoute Authorization lorsqu’un token existe` | `auth.interceptor.spec.ts` | En-tête `Authorization: Bearer <token>` injecté sur la requête sortante | ✅ Passé (8ms) |
-| `ne met pas Authorization si aucun token n’existe` | `auth.interceptor.spec.ts` | Aucun en-tête `Authorization` ajouté si `token === null` | ✅ Passé (1ms) |
+| `login() utilise POST /api/auth/login avec le bon corps` | `auth.service.spec.ts` | Requête `POST /api/auth/login` avec body `{ email, password }`, mise à jour du Signal `token` | ✅ Passé |
+| `list() transmet page et limit` | `track.service.spec.ts` | Requête `GET /api/tracks?page=2&limit=10`, paramètres d'URL conformes | ✅ Passé |
+| `delete() appelle DELETE /api/tracks/:id` | `track.service.spec.ts` | Requête `DELETE /api/tracks/track-123`, statut 204 simulé | ✅ Passé |
+| `ajoute Authorization lorsqu’un token existe` | `auth.interceptor.spec.ts` | En-tête `Authorization: Bearer <token>` injecté sur la requête sortante | ✅ Passé |
+| `ne met pas Authorization si aucun token n’existe` | `auth.interceptor.spec.ts` | Aucun en-tête `Authorization` ajouté si `token === null` | ✅ Passé |
+
+---
+
+## Preuves et Captures (Livrables TP3)
+
+### 1. Capture Network de la suppression d'une piste (Mission 5)
+
+Requête `DELETE /api/tracks/:id` déclenchée après confirmation dans la modale `confirm()`. 
+On observe le code de statut `204 No Content` renvoyé, la notification SnackBar affichée, et le rafraîchissement de la liste.
+
+![Capture suppression](docs/images/screen_suppression_reseau.png)
+
+### 2. Capture Network de l'upload et suivi de la progression (Mission 6)
+
+Requête `POST /api/tracks` avec progression. 
+On observe l'envoi avec la barre de progression et son pourcentage, ainsi que la désactivation préventive du boutton.
+(Pour le test, le réseau a été ralenti en simulant du Regular 4G)
+
+![Capture upload et progression](docs/images/screen_upload_progression.png)
