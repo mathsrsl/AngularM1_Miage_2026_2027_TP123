@@ -1,1 +1,15 @@
 :host { display: block; }
+
+nav button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+nav button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

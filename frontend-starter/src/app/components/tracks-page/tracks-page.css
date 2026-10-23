@@ -1,1 +1,162 @@
 :host { display: block; }
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.8rem 0;
+}
+
+.progress-container progress {
+  flex: 1;
+  height: 10px;
+  border: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  accent-color: #1d755e;
+}
+
+.progress-container progress::-webkit-progress-bar {
+  background-color: #e1ebe7;
+  border-radius: 5px;
+}
+
+.progress-container progress::-webkit-progress-value {
+  background-color: #1d755e;
+  border-radius: 5px;
+}
+
+.progress-container span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #17312a;
+  min-width: 3ch;
+  text-align: right;
+}
+
+.track-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.track-card {
+  background: #f3f7f5;
+  border: 1px solid #e1ebe7;
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.track-card:hover {
+  border-color: #1d755e;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px #17312a14;
+}
+
+/* Piste en cours de lecture */
+.track-card.playing {
+  border-color: #1d755e;
+  background: linear-gradient(135deg, #e8f5e9, #f3f7f5);
+  box-shadow: 0 0 0 2px #1d755e33;
+  transform: translateY(0);
+}
+
+.track-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #17312a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-card .meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #61756f;
+  margin: 0;
+}
+
+.track-card .meta span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Actions masquées par défaut */
+.track-card .track-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s;
+}
+
+.track-card .btn-play {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem;
+  background: #1d755e;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.track-card .btn-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.75rem;
+  background: #fdf2f2;
+  border: 1px solid #fde8e8;
+  border-radius: 8px;
+  color: #c81e1e;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.track-card .btn-delete:hover:not(:disabled) {
+  background: #fde8e8;
+  border-color: #f8b4b4;
+}
+
+.track-card .btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Visibles au survol de la card */
+.track-card:hover .track-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Toujours visibles si la piste est en lecture */
+.track-card.playing .track-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.track-card.playing .btn-play {
+  background: #123d32;
+}
